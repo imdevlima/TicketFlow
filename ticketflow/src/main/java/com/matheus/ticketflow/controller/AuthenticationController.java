@@ -29,43 +29,32 @@ public class AuthenticationController {
     @Autowired
     private TokenService tokenService;
 
-    // --- LOGIN (Entrar) ---
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody UserCreateDTO data){
-        // 1. Encapsula email e senha pro Spring Security
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.password());
-
-        // 2. O Spring vai no banco, checa o hash da senha e valida
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
-        // 3. Se deu certo, gera o Token JWT
-        var token = tokenService.generateToken((User) auth.getPrincipal());
+        User user = (User) auth.getPrincipal(); // Pega o usuário logado
+        var token = tokenService.generateToken(user);
 
-        // 4. Devolve o token pro usuário
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+        // Agora devolvemos o Token E o ID dele
+        return ResponseEntity.ok(new LoginResponseDTO(token, user.getId().toString(), user.getNome()));
     }
 
-    // --- REGISTER (Criar Conta) ---
     @PostMapping("/register")
     public ResponseEntity register(@RequestBody UserCreateDTO data){
-        // Verifica se já existe
         if(this.userRepository.findByEmail(data.email()) != null) return ResponseEntity.badRequest().build();
-
-        // CRIPTOGRAFA A SENHA (Muito importante!)
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
-
         User newUser = new User();
         newUser.setNome(data.nome());
         newUser.setEmail(data.email());
-        newUser.setPasswordHash(encryptedPassword); // Salva o hash, não a senha pura
+        newUser.setPasswordHash(encryptedPassword);
         newUser.setPerfil(data.perfil());
         newUser.setCreatedAt(LocalDateTime.now());
-
         this.userRepository.save(newUser);
-
         return ResponseEntity.ok().build();
     }
 }
 
-// DTO simples para a resposta do login
-record LoginResponseDTO(String token) {}
+// DTO atualizado com mais dados
+record LoginResponseDTO(String token, String userId, String nome) {}
