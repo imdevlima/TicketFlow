@@ -33,10 +33,13 @@ public class SecurityConfigurations {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private CustomOAuth2SuccessHandler customOAuth2SuccessHandler; // <--- 1. INJETAMOS O HANDLER AQUI
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // <--- ATIVANDO O CORS AQUI
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
@@ -44,17 +47,21 @@ public class SecurityConfigurations {
                         .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                // --- 2. ADICIONAMOS A CONFIGURAÇÃO DO GOOGLE AQUI ---
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(customOAuth2SuccessHandler)
+                )
+                // ----------------------------------------------------
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    // --- CONFIGURAÇÃO DO CORS (LIBERAR GERAL PARA TESTE) ---
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*")); // Libera para qualquer front-end
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Libera os métodos
-        configuration.setAllowedHeaders(List.of("*")); // Libera cabeçalhos (Authorization)
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
