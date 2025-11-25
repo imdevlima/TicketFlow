@@ -8,6 +8,8 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
-    // Só de criar isso, o Spring já cria automaticamente os SQLs:
-    // save(), findById(), delete(), findAll()
+
+    // O método TEM que ficar dentro das chaves da interface
+    User findByEmail(String email);
+
 }
